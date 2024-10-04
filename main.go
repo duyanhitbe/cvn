@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 
-	"github.com/atotto/clipboard"
 	"github.com/manifoldco/promptui"
 )
 
@@ -81,6 +82,11 @@ func main() {
 	}
 	_, hook, _ := hookPrompt.Run()
 	var shouldUseHook bool
+
+	if hook != "Yes" && hook != "No" {
+		return
+	}
+
 	if hook == "Yes" {
 		shouldUseHook = true
 	}
@@ -88,7 +94,7 @@ func main() {
 	// Format the commit message
 	commitMessage := formatCommitMessage(commitType, scope, subject, desc, breakingChange)
 
-	copy(commitMessage, shouldUseHook)
+	runGitCommit(commitMessage, shouldUseHook)
 }
 
 // Format the commit message according to Angular convention
@@ -116,15 +122,21 @@ func formatCommitMessage(commitType, scope, subject, desc, breakingChange string
 	return s
 }
 
-// Copy commit message to clipboard
-func copy(commitMessage string, shouldUseHook bool) {
-	s := fmt.Sprintf("git commit -m \"%s\"", commitMessage)
+func runGitCommit(commitMessage string, shouldUseHook bool) {
 	if !shouldUseHook {
-		s += " --no-verify"
+		commitMessage += " --no-verify"
 	}
-	err := clipboard.WriteAll(s)
+	defer fmt.Printf("git commit -m \"%s\"\n", commitMessage)
+	// Prepare the git commit command with the generated commit message
+	cmd := exec.Command("git", "commit", "-m", commitMessage)
+
+	// Set the standard output and error to the console
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Execute the git commit command
+	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("❌ Failed to copy to clipboard: %v", err)
+		log.Fatalf("Failed to execute git commit: %v", err)
 	}
-	fmt.Println("✅ Commit message copied to clipboard.")
 }
