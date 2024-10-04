@@ -123,12 +123,15 @@ func formatCommitMessage(commitType, scope, subject, desc, breakingChange string
 }
 
 func runGitCommit(commitMessage string, shouldUseHook bool) {
+	var cmd *exec.Cmd
+
 	if !shouldUseHook {
-		commitMessage += " --no-verify"
+		cmd = exec.Command("git", "commit", "-m", commitMessage, "--no-verify")
+		defer fmt.Printf("git commit -m \"%s\" --no-verify\n", commitMessage)
+	} else {
+		cmd = exec.Command("git", "commit", "-m", commitMessage)
+		defer fmt.Printf("git commit -m \"%s\"\n", commitMessage)
 	}
-	defer fmt.Printf("git commit -m \"%s\"\n", commitMessage)
-	// Prepare the git commit command with the generated commit message
-	cmd := exec.Command("git", "commit", "-m", commitMessage)
 
 	// Set the standard output and error to the console
 	cmd.Stdout = os.Stdout
